@@ -73,11 +73,11 @@ void opcontrol() {
 		double R_X = master.get_analog(ANALOG_RIGHT_X) / 127.0; // turn right < 0, turn left > 0
 
 		left_front.move_voltage(12000 * L_Y + 12000 * L_X + R_X * 12000);
-		left_center.move_voltage(12000 * L_Y * 0.7 + R_X * 12000);
+		left_center.move_voltage((12000 * L_Y + R_X * 12000) * STRAIGHT_WHEEL_MAX_SPEED);
 		left_rear.move_voltage(12000 * L_Y + -12000 * L_X + R_X * 12000);
 
 		right_front.move_voltage(-12000 * L_Y + 12000 * L_X + R_X * 12000);
-		right_center.move_voltage(-12000 * L_Y * 0.7 + R_X * 12000);
+		right_center.move_voltage((-12000 * L_Y + R_X * 12000) * STRAIGHT_WHEEL_MAX_SPEED);
 		right_rear.move_voltage(-12000 * L_Y + -12000 * L_X + R_X * 12000);
 
 	}
