@@ -1,7 +1,41 @@
 #include "main.h"
 
-#define STRAIGHT_WHEEL_MAX_SPEED .7
+#define STRAIGHT_WHEEL_MAX_SPEED 1
 #define ANGLED_WHEEL_MAX_SPEED 1
+
+bool flywheelOn = false;
+pros::Motor left_front(16);
+pros::Motor left_center(14);
+pros::Motor left_rear(7);
+
+pros::Motor right_front(5);
+pros::Motor right_center(4);
+pros::Motor right_rear(2);
+
+pros::Motor flywheel_front(1);
+pros::Motor flywheel_rear(10);
+
+pros::Motor intake(18);
+pros::Motor roller(8, pros::E_MOTOR_GEAR_100); 
+pros::Motor loader_wheel(20);
+
+pros::Motor kicker(17, pros::E_MOTOR_GEAR_200);
+
+pros::Motor expansion(11);
+
+void toggleFlywheel(int voltage) {
+	if(flywheelOn) {
+		flywheel_front.move_voltage(0);
+		flywheel_rear.move_voltage(0);
+		loader_wheel.move_voltage(0);
+		flywheelOn = false;
+	} else {
+		flywheel_front.move_voltage(voltage);
+		flywheel_rear.move_voltage(-voltage);
+		loader_wheel.move_voltage(12000);
+		flywheelOn = true;
+	}
+}
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -10,7 +44,8 @@
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-
+	kicker.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+	roller.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
 }
 
 /**
@@ -42,7 +77,25 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {
+	toggleFlywheel(9500);
+	pros::delay(10000);
+	kicker.move_absolute(75.0, 200);
+	pros::delay(500);
+	kicker.move_absolute(0.0, 200);
+	pros::delay(500);
+	kicker.move_absolute(75.0, 200);
+	pros::delay(500);
+	kicker.move_absolute(0.0, 200);
+	pros::delay(500);
+	toggleFlywheel(1000);
+	right_center.move_voltage(7000);
+	left_center.move_voltage(-10000);
+	pros::delay(4000);
+	right_center.move_voltage(0);
+	left_center.move_voltage(0);
+	roller.move_absolute(-90, 100);
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -59,13 +112,6 @@ void autonomous() {}
  */
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::Motor left_front(1);
-	pros::Motor left_center(2);
-	pros::Motor left_rear(3);
-
-	pros::Motor right_front(11);
-	pros::Motor right_center(12);
-	pros::Motor right_rear(13);
 
 	while(true) {
 		double L_X = master.get_analog(ANALOG_LEFT_X) / 127.0; // strafe left < 0, strafe right > 0
@@ -80,6 +126,35 @@ void opcontrol() {
 		right_center.move_voltage((-12000 * L_Y + R_X * 12000) * STRAIGHT_WHEEL_MAX_SPEED);
 		right_rear.move_voltage(-12000 * L_Y + -12000 * L_X + R_X * 12000);
 
+		if(master.get_digital(DIGITAL_R1)) { // flywheel
+			toggleFlywheel(10000);
+		}
+
+		if(master.get_digital(DIGITAL_R2)) { // intake/indexer
+			intake.move_voltage(12000);
+		} else if(master.get_digital(DIGITAL_Y)) { // intake/indexer
+			intake.move_voltage(-12000);
+		} else {
+			intake.move_voltage(0);
+		}
+
+		if(master.get_digital(DIGITAL_L2)) {
+			roller.move_voltage(12000);
+		} else {
+			roller.move_voltage(0);
+		}
+
+		if(master.get_digital(DIGITAL_L1)) {
+			kicker.move_absolute(75.0, 200.0);
+		} else {
+			kicker.move_absolute(0.0, 200.0);
+		}
+
+		if(master.get_digital(DIGITAL_LEFT) && master.get_digital(DIGITAL_RIGHT)) {
+			expansion.move(50);
+		} else {
+			expansion.move(0);
+		}
 	}
 	
 }
