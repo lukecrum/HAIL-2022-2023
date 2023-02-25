@@ -120,11 +120,15 @@ void opcontrol() {
 	pros::Motor cataMotor2 = pros::Motor(13);
 	pros::Motor intakeMotor = pros::Motor(11); // TODO:  Get intake motor port
 	pros::ADIDigitalIn cataLimitSwitch = pros::ADIDigitalIn(1); //TODO: Get limit switch port
+
+	pros::Motor expansion = pros::Motor(8);
+	pros::Motor expansion2 = pros::Motor(9);
 	
 
 	double THRESHOLD = 10.0;
 	
 	vis.set_signature(EXAMPLE_SIG, &BLUEGOAL);
+	vis.set_signature(EXAMPLE_SIG, &REDGOAL);
 
 	
 	pros::vision_object_s_t OBJ = vis.get_by_sig(0, 1);
@@ -144,13 +148,13 @@ void opcontrol() {
 				turnSpeed = 10;
 			}
 			arms::chassis::arcade(0, turnSpeed * (abs(error) / 13));
-		} else if(!master.get_digital(DIGITAL_X)) {
-			arms::chassis::arcade(master.get_analog(ANALOG_LEFT_Y) * (double)100 / 127,
+		} else if(!master.get_digital(DIGITAL_L2)) {
+			arms::chassis::arcade(master.get_analog(ANALOG_LEFT_Y) * (double)100 / (double)127,
 		                      master.get_analog(ANALOG_RIGHT_X) * (double)100 /
-		                          127);
+		                          (double)127);
 		}
 
-		if(cataLimitSwitch.get_value() && catastate == MOVING) { // if the cata limit switch is pressed
+		if(cataLimitSwitch.get_value() && catastate == MOVING && master.get_digital(DIGITAL_A) == false) { // if the cata limit switch is pressed
 			cataMotor.move(0);
 			cataMotor2.move(0);
 			catastate = LIMIT_PRESSED;
@@ -168,7 +172,7 @@ void opcontrol() {
 			std::cout << "LIMIT_PRESSED" << std::endl;
 		}
 
-		if(master.get_digital(DIGITAL_A)) { // if A is pressed, fire cata
+		if(master.get_digital(DIGITAL_R2)) { // if A is pressed, fire cata
 			if(catastate == CATA_IDLE || catastate == LIMIT_PRESSED) { // if idle or on limit switch, start firing
 				cataMotor.move(127);
 				cataMotor2.move(-127);
@@ -177,12 +181,24 @@ void opcontrol() {
 		}
 
 		if(master.get_digital(DIGITAL_B)) {
+			intakeMotor.move(127);
+			intakestate = INTAKING;
+		} else if(master.get_digital(DIGITAL_Y)) {
 			intakeMotor.move(-127);
 			intakestate = INTAKING;
 		} else {
 			intakeMotor.move(0);
 			intakestate = INTAKE_IDLE;
 		}
+
+		if(master.get_digital(DIGITAL_LEFT) && master.get_digital(DIGITAL_RIGHT)) {
+			expansion.move(-50);
+			expansion2.move(50);
+		} else {
+			expansion.move(0);
+			expansion2.move(0);
+		}
+
 
 		pros::vision_object_s_t OBJ = vis.get_by_sig(0, 1);
 
